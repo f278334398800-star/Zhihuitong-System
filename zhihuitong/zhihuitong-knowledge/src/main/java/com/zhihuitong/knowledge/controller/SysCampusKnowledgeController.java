@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.zhihuitong.common.annotation.Anonymous;
 import com.zhihuitong.common.annotation.Log;
 import com.zhihuitong.common.core.controller.BaseController;
 import com.zhihuitong.common.core.domain.AjaxResult;
@@ -106,6 +107,7 @@ public class SysCampusKnowledgeController extends BaseController
      * 获取所有已发布的校园知识内容（供RAG索引使用）
      * 此接口供内部Python agent调用，无需权限验证
      */
+    @Anonymous
     @GetMapping("/published")
     public AjaxResult getPublishedKnowledge()
     {

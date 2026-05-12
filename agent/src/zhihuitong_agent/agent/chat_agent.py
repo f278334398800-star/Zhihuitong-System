@@ -45,12 +45,12 @@ class ChatAgent(BaseAgent):
         if settings.system_prompt is not None:
             self.system_prompt = settings.system_prompt
 
-    # 调用 LLM 判断用户问题的路由类型：normal_chat / knowledge_info / knowledge_search
+    # 调用 LLM 判断用户问题的路由类型：normal_chat / knowledge
     async def classify(self, query: str) -> str:
         prompt = CLASSIFY_PROMPT.format(user_query=query)
         response = await self.llm.ainvoke([HumanMessage(content=prompt)])
         result = extract_content_text(response.content).strip()
-        if result in ("normal_chat", "knowledge_info", "knowledge_search"):
+        if result in ("normal_chat", "knowledge"):
             return result
         return "normal_chat"  # 默认走普通聊天
 

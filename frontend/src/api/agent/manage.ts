@@ -173,22 +173,13 @@ export function deleteThread(threadId: string) {
 }
 
 /**
- * RAG 全量重建索引
- */
-export function reindexAll() {
-  return request<RagIndexResult>({
-    url: '/agent/rag/index/all',
-    method: 'post'
-  })
-}
-
-/**
  * 从 Java 后端索引校园知识库
  */
 export function indexKnowledge() {
   return request<RagIndexResult>({
     url: '/agent/rag/index/knowledge',
-    method: 'post'
+    method: 'post',
+    timeout: 300000
   })
 }
 

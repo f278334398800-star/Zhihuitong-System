@@ -20,7 +20,7 @@ public class AgentConfig {
     @Value("${agent.python-service.connect-timeout:5000}")
     private int connectTimeout;
 
-    @Value("${agent.python-service.response-timeout:30000}")
+    @Value("${agent.python-service.response-timeout:300000}")
     private int responseTimeout;
 
     @Value("${agent.python-service.max-buffer-size:16777216}")

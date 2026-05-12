@@ -5,10 +5,10 @@ from langgraph.graph import END, StateGraph
 
 from zhihuitong_agent.agent.chat_agent import extract_content_text
 from zhihuitong_agent.agent.memory.sqlite_memory import MemoryManager
-from zhihuitong_agent.agent.graph.edges import route_after_classify
+from zhihuitong_agent.agent.graph.edges import route_after_classify, route_after_evaluate
 from zhihuitong_agent.agent.graph.nodes import (
     make_classify_node, make_llm_node, make_retrieve_node,
-    make_retrieve_and_search_node, make_summarize_node, make_suggest_node,
+    make_search_node, make_summarize_node, make_suggest_node,
 )
 from zhihuitong_agent.agent.graph.state import ZhihuitongAgentState
 from zhihuitong_agent.core.logger import get_logger
@@ -31,32 +31,43 @@ class AgentWorkflow:
 
         # ── 注册所有节点 ──
         builder.add_node("classify", make_classify_node(self.chat_agent))
-        builder.add_node("retrieve", make_retrieve_node(self.rag_agent))
-        builder.add_node("retrieve_and_search",
-            make_retrieve_and_search_node(self.rag_agent, self.search_agent))
+        builder.add_node("retrieve", make_retrieve_node(self.rag_agent, self.chat_agent))
+        builder.add_node("search", make_search_node(self.search_agent))
         builder.add_node("llm", make_llm_node(self.chat_agent))
         builder.add_node("suggest", make_suggest_node(self.chat_agent))
         builder.add_node("summarize", make_summarize_node(self.chat_agent))
 
-        # ── 完整路由：三路分类 ──
+        # ── 路由：classify → 两路分支 ──
         builder.set_entry_point("classify")
         builder.add_conditional_edges(
             "classify",
             route_after_classify,
             {
                 "retrieve": "retrieve",
-                "retrieve_and_search": "retrieve_and_search",
                 "llm": "llm",
             },
         )
-        builder.add_edge("retrieve", "llm")
-        builder.add_edge("retrieve_and_search", "llm")
+
+        # ── 路由：retrieve → 质量评估后决定是否联网搜索 ──
+        builder.add_conditional_edges(
+            "retrieve",
+            route_after_evaluate,
+            {
+                "search": "search",
+                "llm": "llm",
+            },
+        )
+
+        # ── 搜索后直接到 LLM ──
+        builder.add_edge("search", "llm")
+
+        # ── LLM → 推荐 → 摘要 → 结束 ──
         builder.add_edge("llm", "suggest")
         builder.add_edge("suggest", "summarize")
         builder.add_edge("summarize", END)
 
         self.agent = builder.compile(checkpointer=self.memory.checkpointer)
-        logger.info("AgentWorkflow 图构建完成（当前模式：完整路由 + RAG + 推荐问题）")
+        logger.info("AgentWorkflow 图构建完成（两路路由 + RAG 质量评估 + 联网搜索 fallback）")
 
     # 热重载：重新加载 Agent 配置并重建图
     def rebuild(self):
@@ -101,34 +112,24 @@ class AgentWorkflow:
                 assistant_content += content
                 yield content
 
-        # 获取最终状态，追加来源、搜索标记和推荐问题
+        # 获取最终状态，追加来源标记和推荐问题
         try:
             snapshot = await self.agent.aget_state(
                 config={"configurable": {"thread_id": thread_id}}
             )
 
             route_type = snapshot.values.get("route_type", "normal_chat")
+            search_results = snapshot.values.get("search_results", "")
 
-            # RAG 来源追加（仅 knowledge_info 路径）
-            if route_type == "knowledge_info":
-                sources = snapshot.values.get("rag_sources", [])
-                if sources:
-                    seen = set()
-                    source_lines = []
-                    for s in sources:
-                        title = s.get("title", "")
-                        if title and title not in seen:
-                            seen.add(title)
-                            source_lines.append(f"- {title}")
-                    if source_lines:
-                        sources_text = "\n\n---\n**参考来源：**\n" + "\n".join(source_lines)
-                        assistant_content += sources_text
-                        yield sources_text
-
-            # 联网搜索标记（仅 knowledge_search 路径）
-            if route_type == "knowledge_search":
-                search_results = snapshot.values.get("search_results", "")
+            # 仅知识库路由时追加来源
+            if route_type == "knowledge":
                 if search_results:
+                    # 联网搜索结果：标注来源于网络
+                    search_marker = "\n\n---\n*此回答信息来源于网络*"
+                    assistant_content += search_marker
+                    yield search_marker
+                else:
+                    # RAG 检索结果：标注参考文章来源
                     sources = snapshot.values.get("rag_sources", [])
                     if sources:
                         seen = set()
@@ -139,13 +140,9 @@ class AgentWorkflow:
                                 seen.add(title)
                                 source_lines.append(f"- {title}")
                         if source_lines:
-                            sources_text = "\n\n---\n**相关知识：**\n" + "\n".join(source_lines)
+                            sources_text = "\n\n---\n**参考来源：**\n" + "\n".join(source_lines)
                             assistant_content += sources_text
                             yield sources_text
-
-                    search_marker = "\n\n---\n*此消息来源于网络*"
-                    assistant_content += search_marker
-                    yield search_marker
 
             # 推荐问题发送
             suggestions = snapshot.values.get("suggestions", [])

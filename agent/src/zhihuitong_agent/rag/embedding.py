@@ -1,5 +1,7 @@
 """自定义 Embedding 函数 — 基于 sentence-transformers，兼容 ChromaDB 接口"""
 
+import numpy as np
+
 from zhihuitong_agent.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -27,7 +29,21 @@ class SentenceTransformerEmbeddingFunction:
         if self._is_bge and is_query:
             texts = [BGE_QUERY_INSTRUCTION + t for t in texts]
         embeddings = self._model.encode(texts, normalize_embeddings=True)
-        return embeddings.tolist()
+        # encode 对单条文本可能返回 1D array 或标量，统一转为 2D
+        if isinstance(embeddings, np.ndarray):
+            if embeddings.ndim == 1:
+                embeddings = embeddings.reshape(1, -1)
+        elif isinstance(embeddings, (int, float)):
+            logger.error(f"encode 返回了标量: {type(embeddings)}, texts={texts[:1]}")
+            raise ValueError(f"encode 返回标量而非数组")
+        else:
+            embeddings = np.array(embeddings)
+            if embeddings.ndim == 1:
+                embeddings = embeddings.reshape(1, -1)
+        result = embeddings.tolist()
+        if is_query:
+            logger.debug(f"embed_query 返回: type={type(result)}, len={len(result)}, item_type={type(result[0]) if result else 'empty'}")
+        return result
 
     def __call__(self, input: list[str]) -> list[list[float]]:
         return self._embed(input, is_query=False)
@@ -35,5 +51,7 @@ class SentenceTransformerEmbeddingFunction:
     def embed_documents(self, documents: list[str]) -> list[list[float]]:
         return self._embed(documents, is_query=False)
 
-    def embed_query(self, query: str) -> list[float]:
-        return self._embed([query], is_query=True)[0]
+    def embed_query(self, input, **kwargs) -> list[float]:
+        # ChromaDB 可能传 str 或 list[str]
+        text = input[0] if isinstance(input, list) else input
+        return self._embed([text], is_query=True)[0]

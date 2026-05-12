@@ -122,6 +122,11 @@ class DocStore:
             "updated_at": row[7],
         }
 
+    async def clear_all(self):
+        await self.conn.execute("DELETE FROM parent_documents")
+        await self.conn.commit()
+        logger.info("DocStore 已清空所有记录")
+
     async def delete_by_article_id(self, article_id: int):
         await self.conn.execute(
             "DELETE FROM parent_documents WHERE article_id = ?",

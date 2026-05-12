@@ -8,17 +8,21 @@ logger = get_logger(__name__)
 
 # 执行 RAG 检索：向量搜索 → 父块回溯
 # Returns: (parent_docs, sources) — 父文档列表和来源元数据
-async def search(query: str, k: int = 2) -> tuple[list, list]:
+async def search(query: str, k: int = 4) -> tuple[list, list]:
     vector_store = get_vector_store()
     doc_store = get_doc_store()
 
     try:
+        count = vector_store.collection.count()
+        logger.info(f"RAG 检索: query='{query[:30]}', k={k}, chroma_count={count}")
         child_chunks = await vector_store.similarity_search(query, k=k)
+        logger.info(f"RAG 检索到 {len(child_chunks)} 个子块")
     except Exception as e:
         logger.warning(f"RAG 向量检索失败: {e}")
         return [], []
 
     if not child_chunks:
+        logger.warning(f"RAG 向量检索返回空结果，query='{query[:30]}'")
         return [], []
 
     # 通过 parent_id 回溯完整文章，去重

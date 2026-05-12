@@ -17,7 +17,8 @@ async def fetch_all_published_knowledge() -> list[dict]:
     url = f"{settings.java_backend_url}/knowledge/knowledge/published"
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        transport = httpx.AsyncHTTPTransport(proxy=None)
+        async with httpx.AsyncClient(timeout=30.0, transport=transport) as client:
             response = await client.get(url)
             response.raise_for_status()
 
@@ -51,11 +52,20 @@ async def index_knowledge_to_rag() -> dict:
     from datetime import datetime, timezone
 
     knowledge_list = await fetch_all_published_knowledge()
+    logger.info(f"获取到 {len(knowledge_list)} 条已发布知识，开始索引...")
     if not knowledge_list:
+        logger.warning("没有获取到任何已发布知识，请检查 Java 后端 /knowledge/knowledge/published 接口")
         return {"total": 0, "indexed": 0, "skipped": 0, "errors": 0}
 
     doc_store = get_doc_store()
     vector_store = get_vector_store()
+
+    # 检测不一致：docstore 有记录但 ChromaDB 为空 → 清空 docstore 强制全量重建
+    chroma_count = vector_store.collection.count()
+    doc_count = len(await doc_store.list_all())
+    if doc_count > 0 and chroma_count == 0:
+        logger.warning(f"检测到不一致: docstore={doc_count} 篇, chroma=0 条。清空 docstore 强制重建索引")
+        await doc_store.clear_all()
 
     indexed = 0
     skipped = 0
@@ -68,6 +78,7 @@ async def index_knowledge_to_rag() -> dict:
             content = knowledge.get("content", "")
 
             if not content:
+                logger.warning(f"知识 {knowledge_id} ({title}) 内容为空，跳过")
                 errors += 1
                 continue
 
@@ -117,7 +128,8 @@ async def index_knowledge_to_rag() -> dict:
             errors += 1
 
     total = len(knowledge_list)
-    logger.info(f"知识库索引完成: total={total}, indexed={indexed}, skipped={skipped}, errors={errors}")
+    chroma_count = vector_store.collection.count()
+    logger.info(f"知识库索引完成: total={total}, indexed={indexed}, skipped={skipped}, errors={errors}, chroma_count={chroma_count}")
 
     return {
         "total": total,

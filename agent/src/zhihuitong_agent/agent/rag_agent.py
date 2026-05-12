@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 class RagAgent(BaseAgent):
     # 执行 RAG 检索并拼接上下文
     # Returns: (rag_context, rag_sources) — 格式化的上下文字符串和来源列表
-    async def retrieve(self, query: str, k: int = 2) -> tuple[str, list]:
+    async def retrieve(self, query: str, k: int = 4) -> tuple[str, list]:
         parent_docs, sources = await search(query, k=k)
 
         if not parent_docs:

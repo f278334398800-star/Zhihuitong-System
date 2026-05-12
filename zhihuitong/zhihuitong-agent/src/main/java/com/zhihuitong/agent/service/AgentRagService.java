@@ -1,11 +1,11 @@
 package com.zhihuitong.agent.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,55 +21,63 @@ public class AgentRagService {
         this.webClient = webClient;
     }
 
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     /**
      * 索引单篇文章
      */
-    public String indexArticle(String articleId, String title, String content) {
+    public Object indexArticle(String articleId, String title, String content) {
         Map<String, Object> body = Map.of(
                 "article_id", articleId,
                 "title", title,
                 "content", content
         );
-        return webClient.post()
+        String raw = webClient.post()
                 .uri("/rag/index")
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();
+        return extractData(raw);
     }
 
     /**
      * 删除文章索引
      */
-    public String deleteArticleIndex(String articleId) {
-        return webClient.delete()
+    public Object deleteArticleIndex(String articleId) {
+        String raw = webClient.delete()
                 .uri("/rag/index/{id}", articleId)
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();
-    }
-
-    /**
-     * 批量重建索引
-     */
-    public String reindexAll(List<Map<String, Object>> articles) {
-        Map<String, Object> body = Map.of("articles", articles);
-        return webClient.post()
-                .uri("/rag/index/all")
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+        return extractData(raw);
     }
 
     /**
      * 从 Java 后端索引校园知识库
      */
-    public String indexKnowledge() {
-        return webClient.post()
+    public Object indexKnowledge() {
+        String raw = webClient.post()
                 .uri("/rag/index/knowledge")
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();
+        return extractData(raw);
+    }
+
+    /**
+     * 从 Python JSON 响应中提取 data 字段
+     */
+    private Object extractData(String raw) {
+        try {
+            JsonNode root = objectMapper.readTree(raw);
+            if (root.has("data")) {
+                return objectMapper.treeToValue(root.get("data"), Object.class);
+            }
+            return raw;
+        } catch (Exception e) {
+            log.warn("解析 Python 响应失败，返回原始字符串", e);
+            return raw;
+        }
     }
 }

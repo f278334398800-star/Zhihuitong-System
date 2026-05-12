@@ -1,8 +1,8 @@
-"""LangGraph 节点工厂 — 分类 / RAG 检索 / LLM 调用 / 记忆压缩 / 联网搜索 / 推荐问题"""
+"""LangGraph 节点工厂 — 分类 / RAG 检索 / 质量评估 / 联网搜索 / LLM 调用 / 记忆压缩 / 推荐问题"""
 
 import re
 
-from langchain_core.messages import HumanMessage, RemoveMessage
+from langchain_core.messages import HumanMessage, RemoveMessage, SystemMessage
 
 from zhihuitong_agent.core.logger import get_logger
 
@@ -29,50 +29,63 @@ def make_classify_node(chat_agent):
     return classify_node
 
 
-def make_retrieve_node(rag_agent):
-    """返回 retrieve_node：委托 RagAgent 执行 RAG 检索"""
+def make_retrieve_node(rag_agent, chat_agent):
+    """返回 retrieve_node：执行 RAG 检索 + 质量评估"""
 
     async def retrieve_node(state):
+        from zhihuitong_agent.agent.prompt.search_prompt import CLASSIFY_SEARCH_PROMPT
+
         query = _extract_query(state)
         if not query:
-            return {"rag_context": "", "rag_sources": []}
+            return {"rag_context": "", "rag_sources": [], "need_search": False}
+
         rag_context, rag_sources = await rag_agent.retrieve(query)
-        return {"rag_context": rag_context, "rag_sources": rag_sources}
 
-    return retrieve_node
+        if not rag_context:
+            logger.info("RAG 检索为空，需要联网搜索")
+            return {"rag_context": "", "rag_sources": rag_sources, "need_search": True}
 
-
-def make_retrieve_and_search_node(rag_agent, search_agent):
-    """返回 retrieve_and_search_node：同时执行 RAG 检索和联网搜索"""
-
-    async def retrieve_and_search_node(state):
-        query = _extract_query(state)
-        if not query:
-            return {"rag_context": "", "rag_sources": [], "search_results": ""}
-
-        # 并行执行 RAG 和联网搜索
-        import asyncio
-        rag_task = rag_agent.retrieve(query)
-        search_task = search_agent.run(query)
-
-        (rag_context, rag_sources), search_results = await asyncio.gather(
-            rag_task, search_task, return_exceptions=True
+        # 用 LLM 评估 RAG 结果质量
+        eval_prompt = CLASSIFY_SEARCH_PROMPT.format(
+            user_query=query, rag_context=rag_context[:1500]
         )
-
-        if isinstance(rag_context, Exception):
-            logger.warning(f"RAG 检索失败: {rag_context}")
-            rag_context, rag_sources = "", []
-        if isinstance(search_results, Exception):
-            logger.warning(f"联网搜索失败: {search_results}")
-            search_results = ""
+        try:
+            response = await chat_agent.llm.ainvoke([HumanMessage(content=eval_prompt)])
+            from zhihuitong_agent.agent.chat_agent import extract_content_text
+            result = extract_content_text(response.content).strip()
+            need_search = result != "no_search"
+            logger.info(f"RAG 质量评估: {result}, need_search={need_search}")
+        except Exception as e:
+            logger.warning(f"RAG 质量评估失败，默认使用 RAG 结果: {e}")
+            need_search = False
 
         return {
             "rag_context": rag_context,
             "rag_sources": rag_sources,
-            "search_results": search_results,
+            "need_search": need_search,
         }
 
-    return retrieve_and_search_node
+    return retrieve_node
+
+
+def make_search_node(search_agent):
+    """返回 search_node：联网搜索补充（RAG 质量不足时触发）"""
+
+    async def search_node(state):
+        query = _extract_query(state)
+        if not query:
+            return {"search_results": ""}
+
+        try:
+            search_results = await search_agent.run(query)
+            logger.info(f"联网搜索完成，结果长度: {len(search_results)}")
+        except Exception as e:
+            logger.warning(f"联网搜索失败: {e}")
+            search_results = ""
+
+        return {"search_results": search_results}
+
+    return search_node
 
 
 def make_llm_node(chat_agent):
@@ -137,6 +150,3 @@ def make_summarize_node(chat_agent):
         return {"messages": remove_ops, "summary": new_summary}
 
     return summarize_node
-
-
-

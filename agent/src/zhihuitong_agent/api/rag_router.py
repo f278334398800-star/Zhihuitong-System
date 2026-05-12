@@ -186,3 +186,58 @@ async def index_knowledge():
     except Exception as e:
         logger.error(f"索引知识库失败: {e}")
         return {"code": 500, "msg": f"Knowledge indexing failed: {e}", "data": None}
+
+
+# 诊断：检查 RAG 存储状态
+@router.get("/status")
+async def rag_status():
+    try:
+        doc_store = get_doc_store()
+        vector_store = get_vector_store()
+
+        parent_docs = await doc_store.list_all()
+        chroma_count = vector_store.collection.count()
+
+        return {
+            "code": 200,
+            "msg": "success",
+            "data": {
+                "chroma_chunk_count": chroma_count,
+                "sqlite_article_count": len(parent_docs),
+                "articles": [
+                    {"id": d["article_id"], "title": d["title"], "content_len": len(d["content"])}
+                    for d in parent_docs
+                ],
+            },
+        }
+    except Exception as e:
+        logger.error(f"RAG 状态查询失败: {e}")
+        return {"code": 500, "msg": str(e), "data": None}
+
+
+# 诊断：测试 Java 后端知识库接口连通性
+@router.get("/test-java")
+async def test_java_connection():
+    import httpx
+    from zhihuitong_agent.core.settings import settings
+
+    url = f"{settings.java_backend_url}/knowledge/knowledge/published"
+    try:
+        transport = httpx.AsyncHTTPTransport(proxy=None)
+        async with httpx.AsyncClient(timeout=10.0, transport=transport) as client:
+            response = await client.get(url)
+            return {
+                "code": 200,
+                "msg": "success",
+                "data": {
+                    "url": url,
+                    "status_code": response.status_code,
+                    "response_preview": response.text[:500],
+                },
+            }
+    except Exception as e:
+        return {
+            "code": 500,
+            "msg": str(e),
+            "data": {"url": url},
+        }

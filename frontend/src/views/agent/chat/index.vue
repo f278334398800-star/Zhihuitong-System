@@ -64,20 +64,23 @@
             >
               <el-icon><CopyDocument /></el-icon>
             </span>
+          </div>
 
-            <!-- 建议标签 -->
-            <div v-if="msg.suggestions?.length" class="suggestions">
-              <el-tag
-                v-for="s in msg.suggestions"
-                :key="s"
-                class="suggestion-tag"
-                type="info"
-                effect="plain"
-                round
-                @click="sendMessage(s)"
-              >
-                {{ s }}
-              </el-tag>
+          <!-- 推荐问题（与气泡同级，CSS 控制换行到下方） -->
+          <div v-if="msg.role === 'assistant' && msg.suggestions?.length" class="suggestions-panel">
+            <div class="suggestions-label">
+              <el-icon><ChatLineSquare /></el-icon>
+              <span>你可能还想问</span>
+            </div>
+            <div
+              v-for="(s, idx) in msg.suggestions"
+              :key="s"
+              class="suggestion-card"
+              :style="{ '--accent-color': suggestionColors[idx % suggestionColors.length] }"
+              @click="sendMessage(s)"
+            >
+              <span class="suggestion-text">{{ s }}</span>
+              <el-icon class="suggestion-arrow"><ArrowRight /></el-icon>
             </div>
           </div>
 
@@ -130,7 +133,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick, watch } from 'vue'
-import { ChatDotRound, Refresh, Promotion, User, CopyDocument } from '@element-plus/icons-vue'
+import { ChatDotRound, Refresh, Promotion, User, CopyDocument, ChatLineSquare, ArrowRight } from '@element-plus/icons-vue'
 import { ElMessage, ElInput } from 'element-plus'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
@@ -173,6 +176,7 @@ const displayedText = ref('')
 const abortController = ref<AbortController | null>(null)
 
 const welcomeChips = ['你好，介绍一下自己', '帮我看看课程安排', '有什么学习建议？']
+const suggestionColors = ['#6366f1', '#8b5cf6', '#06b6d4']
 
 function focusInput() {
   setTimeout(() => {
@@ -320,13 +324,19 @@ async function sendMessage(text: string) {
       console.error('聊天请求异常:', e)
       if (!assistantMsg.content) {
         assistantMsg.content = '请求失败，请稍后重试。'
-        messages.value.push(assistantMsg)
       }
     }
   } finally {
     if (typewriterTimer) clearInterval(typewriterTimer)
     if (fullText) {
       assistantMsg.content = fullText
+    }
+    // 确保 AI 消息始终被显示（即使后端未返回任何文本块）
+    if (!messages.value.find(m => m.id === assistantMsg.id)) {
+      if (!assistantMsg.content) {
+        assistantMsg.content = '抱歉，未能获取到回答，请重试。'
+      }
+      messages.value.push(assistantMsg)
     }
     typingMessageId.value = null
     streaming.value = false

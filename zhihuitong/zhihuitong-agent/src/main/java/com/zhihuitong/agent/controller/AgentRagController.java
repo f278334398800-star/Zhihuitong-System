@@ -9,9 +9,6 @@ import com.zhihuitong.common.enums.BusinessType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-
 /**
  * RAG 知识库管理控制器
  */
@@ -29,7 +26,7 @@ public class AgentRagController extends BaseController {
     @PostMapping("/index")
     public AjaxResult indexArticle(@RequestBody ArticleIndexDTO dto) {
         try {
-            String result = ragService.indexArticle(dto.getArticleId(), dto.getTitle(), dto.getContent());
+            Object result = ragService.indexArticle(dto.getArticleId(), dto.getTitle(), dto.getContent());
             return AjaxResult.success("文章索引成功", result);
         } catch (Exception e) {
             return error("索引失败: " + e.getMessage());
@@ -43,24 +40,10 @@ public class AgentRagController extends BaseController {
     @DeleteMapping("/index/{articleId}")
     public AjaxResult deleteIndex(@PathVariable String articleId) {
         try {
-            String result = ragService.deleteArticleIndex(articleId);
+            Object result = ragService.deleteArticleIndex(articleId);
             return AjaxResult.success("索引已删除", result);
         } catch (Exception e) {
             return error("删除索引失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 批量重建索引
-     */
-    @Log(title = "RAG 索引", businessType = BusinessType.UPDATE)
-    @PostMapping("/reindex")
-    public AjaxResult reindexAll(@RequestBody List<Map<String, Object>> articles) {
-        try {
-            String result = ragService.reindexAll(articles);
-            return AjaxResult.success("批量索引完成", result);
-        } catch (Exception e) {
-            return error("批量索引失败: " + e.getMessage());
         }
     }
 
@@ -71,7 +54,7 @@ public class AgentRagController extends BaseController {
     @PostMapping("/index/knowledge")
     public AjaxResult indexKnowledge() {
         try {
-            String result = ragService.indexKnowledge();
+            Object result = ragService.indexKnowledge();
             return AjaxResult.success("知识库索引完成", result);
         } catch (Exception e) {
             return error("知识库索引失败: " + e.getMessage());

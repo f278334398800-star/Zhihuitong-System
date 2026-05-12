@@ -65,18 +65,23 @@
               >
                 <el-icon><CopyDocument /></el-icon>
               </span>
-              <div v-if="msg.suggestions?.length" class="suggestions">
-                <el-tag
-                  v-for="s in msg.suggestions"
-                  :key="s"
-                  class="suggestion-tag"
-                  type="info"
-                  effect="plain"
-                  round
-                  @click="sendMessage(s)"
-                >
-                  {{ s }}
-                </el-tag>
+            </div>
+
+            <!-- 推荐问题（与气泡同级，CSS 控制换行到下方） -->
+            <div v-if="msg.role === 'assistant' && msg.suggestions?.length" class="suggestions-panel">
+              <div class="suggestions-label">
+                <el-icon><ChatLineSquare /></el-icon>
+                <span>你可能还想问</span>
+              </div>
+              <div
+                v-for="(s, idx) in msg.suggestions"
+                :key="s"
+                class="suggestion-card"
+                :style="{ '--accent-color': suggestionColors[idx % suggestionColors.length] }"
+                @click="sendMessage(s)"
+              >
+                <span class="suggestion-text">{{ s }}</span>
+                <el-icon class="suggestion-arrow"><ArrowRight /></el-icon>
               </div>
             </div>
           </div>
@@ -122,7 +127,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
-import { ChatDotRound, Refresh, Promotion, CopyDocument, Minus } from '@element-plus/icons-vue'
+import { ChatDotRound, Refresh, Promotion, CopyDocument, Minus, ChatLineSquare, ArrowRight } from '@element-plus/icons-vue'
 import { ElMessage, ElInput } from 'element-plus'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
@@ -211,6 +216,7 @@ const displayedText = ref('')
 const abortController = ref<AbortController | null>(null)
 
 const welcomeChips = ['你好，介绍一下自己', '帮我看看课程安排', '有什么学习建议？']
+const suggestionColors = ['#6366f1', '#8b5cf6', '#06b6d4']
 
 function focusInput() {
   setTimeout(() => {
@@ -337,12 +343,18 @@ async function sendMessage(text: string) {
     if (e.name !== 'AbortError') {
       if (!assistantMsg.content) {
         assistantMsg.content = '请求失败，请稍后重试。'
-        messages.value.push(assistantMsg)
       }
     }
   } finally {
     if (typewriterTimer) clearInterval(typewriterTimer)
     if (fullText) assistantMsg.content = fullText
+    // 确保 AI 消息始终被显示（即使后端未返回任何文本块）
+    if (!messages.value.find(m => m.id === assistantMsg.id)) {
+      if (!assistantMsg.content) {
+        assistantMsg.content = '抱歉，未能获取到回答，请重试。'
+      }
+      messages.value.push(assistantMsg)
+    }
     typingMessageId.value = null
     streaming.value = false
     waitingForReply.value = false
@@ -636,6 +648,8 @@ $radius-sm: 10px;
 
   &.assistant {
     justify-content: flex-start;
+    flex-wrap: wrap;
+
     .message-bubble {
       background: $surface;
       color: $text;
@@ -663,13 +677,17 @@ $radius-sm: 10px;
       }
       &:hover .copy-btn { opacity: 1; }
     }
+
+    .suggestions-panel {
+      flex-basis: 100%;
+    }
   }
 
   .message-content {
     padding: 10px 14px;
     font-size: 13.5px;
     line-height: 1.65;
-    word-break: break-word;
+    overflow-wrap: break-word;
   }
 }
 
@@ -704,17 +722,65 @@ $radius-sm: 10px;
 @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
 @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-.suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+// ── 推荐问题面板（气泡下方） ──
+.suggestions-panel {
   margin-top: 6px;
+  margin-bottom: 4px;
+  width: fit-content;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 
-  .suggestion-tag {
+  .suggestions-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    color: $text-muted;
+    padding-left: 2px;
+
+    .el-icon { font-size: 13px; }
+  }
+
+  .suggestion-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: $surface;
+    border: 1px solid $border;
+    border-left: 3px solid var(--accent-color, $primary);
+    border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s;
-    border-radius: 8px !important;
-    &:hover { transform: translateY(-1px); }
+    transition: all 0.2s ease;
+    width: fit-content;
+
+    .suggestion-text {
+      font-size: 12.5px;
+      color: $text-secondary;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+
+    .suggestion-arrow {
+      font-size: 11px;
+      color: $text-muted;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      border-color: var(--accent-color, $primary);
+      background: rgba(99, 102, 241, 0.03);
+      transform: translateX(2px);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+
+      .suggestion-text { color: var(--accent-color, $primary); }
+      .suggestion-arrow {
+        color: var(--accent-color, $primary);
+        transform: translateX(2px);
+      }
+    }
   }
 }
 

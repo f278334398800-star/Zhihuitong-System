@@ -35,7 +35,7 @@
             <div class="card-body">
               <div class="status-visual">
                 <div class="status-circle" :class="{ 'is-active': statusData.enabled }">
-                  <el-icon :size="48"><Cpu /></el-icon>
+                  <el-icon :size="36"><Cpu /></el-icon>
                 </div>
                 <div class="status-message">{{ statusData.message }}</div>
               </div>
@@ -103,16 +103,6 @@
                   <el-button
                     type="primary"
                     size="large"
-                    :loading="ragLoading"
-                    @click="handleReindex"
-                    class="reindex-btn"
-                  >
-                    <el-icon class="btn-icon"><Refresh /></el-icon>
-                    全量重建索引
-                  </el-button>
-                  <el-button
-                    type="success"
-                    size="large"
                     :loading="knowledgeLoading"
                     @click="handleIndexKnowledge"
                     class="knowledge-btn"
@@ -120,7 +110,7 @@
                     <el-icon class="btn-icon"><Files /></el-icon>
                     索引校园知识库
                   </el-button>
-                  <p class="rag-hint">重建索引将重新处理所有知识库文章</p>
+                  <p class="rag-hint">从 Java 后端拉取所有已发布的知识内容并建立向量索引</p>
                 </div>
                 <div v-if="ragResult" class="rag-stats">
                   <div class="rag-stat-item total">
@@ -284,7 +274,6 @@ import {
   getActiveThreads,
   clearAllMemory,
   deleteThread,
-  reindexAll,
   indexKnowledge
 } from '@/api/agent/manage'
 import type { AiStatus, AiStats, ActiveThread, RagIndexResult } from '@/api/agent/manage'
@@ -342,7 +331,6 @@ const refreshing = ref(false)
 const statusLoading = ref(false)
 const concurrencyLoading = ref(false)
 const statsLoading = ref(false)
-const ragLoading = ref(false)
 const knowledgeLoading = ref(false)
 const clearLoading = ref(false)
 const deletingThread = ref<string | null>(null)
@@ -463,25 +451,6 @@ const saveConcurrency = async () => {
     ElMessage.error('保存失败')
   } finally {
     concurrencyLoading.value = false
-  }
-}
-
-const handleReindex = async () => {
-  await ElMessageBox.confirm(
-    '确定要全量重建索引吗？这可能需要一些时间。',
-    '确认操作',
-    { type: 'warning' }
-  )
-
-  ragLoading.value = true
-  try {
-    const res = await reindexAll()
-    ragResult.value = res.data
-    ElMessage.success('索引重建完成')
-  } catch (error) {
-    ElMessage.error('索引重建失败')
-  } finally {
-    ragLoading.value = false
   }
 }
 
@@ -677,7 +646,7 @@ onUnmounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
+    padding: 14px 20px;
     border-bottom: 1px solid #f0f0f0;
   }
 
@@ -695,7 +664,7 @@ onUnmounted(() => {
   }
 
   .card-body {
-    padding: 24px;
+    padding: 18px;
   }
 }
 
@@ -739,12 +708,12 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 24px 0;
+    padding: 12px 0;
   }
 
   .status-circle {
-    width: 100px;
-    height: 100px;
+    width: 72px;
+    height: 72px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -764,7 +733,7 @@ onUnmounted(() => {
   }
 
   .status-message {
-    margin-top: 16px;
+    margin-top: 10px;
     font-size: 14px;
     color: #6b7280;
   }
@@ -793,7 +762,7 @@ onUnmounted(() => {
   .concurrency-visual {
     display: flex;
     justify-content: center;
-    padding: 24px 0;
+    padding: 12px 0;
   }
 
   .concurrency-display {
@@ -801,7 +770,7 @@ onUnmounted(() => {
   }
 
   .concurrency-number {
-    font-size: 56px;
+    font-size: 40px;
     font-weight: 700;
     background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
     -webkit-background-clip: text;
@@ -925,37 +894,18 @@ onUnmounted(() => {
   .rag-content {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 10px;
   }
 
   .rag-action {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-  }
-
-  .reindex-btn {
-    padding: 12px 32px;
-    font-size: 14px;
-    font-weight: 600;
-    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-    border: none;
-    border-radius: 10px;
-    transition: all 0.3s ease;
-
-    .btn-icon {
-      margin-right: 6px;
-    }
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
-    }
+    gap: 6px;
   }
 
   .knowledge-btn {
-    padding: 12px 32px;
+    padding: 10px 28px;
     font-size: 14px;
     font-weight: 600;
     background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
@@ -981,15 +931,15 @@ onUnmounted(() => {
   .rag-stats {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    padding: 14px;
+    gap: 8px;
+    padding: 10px;
     background: #f9fafb;
     border-radius: 10px;
   }
 
   .rag-stat-item {
     text-align: center;
-    padding: 10px;
+    padding: 6px;
     border-radius: 8px;
     transition: all 0.3s ease;
 
@@ -1215,7 +1165,7 @@ onUnmounted(() => {
   }
 
   .concurrency-number {
-    font-size: 40px !important;
+    font-size: 32px !important;
   }
 }
 </style>
