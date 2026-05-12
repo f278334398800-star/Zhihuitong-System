@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhihuitong.agent.mapper.AiModelPresetMapper">
+
+    <resultMap type="com.zhihuitong.agent.domain.AiModelPreset" id="AiModelPresetResult">
+        <result property="id"             column="id"             />
+        <result property="name"           column="name"           />
+        <result property="provider"       column="provider"       />
+        <result property="protocol"       column="protocol"       />
+        <result property="openaiModel"    column="openai_model"   />
+        <result property="openaiBaseUrl"  column="openai_base_url"/>
+        <result property="anthropicModel" column="anthropic_model"/>
+        <result property="anthropicBaseUrl" column="anthropic_base_url"/>
+        <result property="ollamaModel"    column="ollama_model"   />
+        <result property="ollamaBaseUrl"  column="ollama_base_url"/>
+        <result property="apiKey"         column="api_key"        />
+        <result property="icon"           column="icon"           />
+        <result property="sortOrder"      column="sort_order"     />
+        <result property="status"         column="status"         />
+        <result property="createBy"       column="create_by"      />
+        <result property="createTime"     column="create_time"    />
+        <result property="updateBy"       column="update_by"      />
+        <result property="updateTime"     column="update_time"    />
+        <result property="remark"         column="remark"         />
+    </resultMap>
+
+    <sql id="selectAiModelPresetVo">
+        select id, name, provider, protocol, openai_model, openai_base_url,
+               anthropic_model, anthropic_base_url, ollama_model, ollama_base_url,
+               api_key, icon, sort_order, status, create_by, create_time,
+               update_by, update_time, remark
+        from ai_model_preset
+    </sql>
+
+    <select id="selectAiModelPresetById" parameterType="Long" resultMap="AiModelPresetResult">
+        <include refid="selectAiModelPresetVo"/>
+        where id = #{id}
+    </select>
+
+    <select id="selectAiModelPresetList" parameterType="com.zhihuitong.agent.domain.AiModelPreset" resultMap="AiModelPresetResult">
+        <include refid="selectAiModelPresetVo"/>
+        <where>
+            <if test="name != null and name != ''"> and name like concat('%', #{name}, '%')</if>
+            <if test="provider != null and provider != ''"> and provider = #{provider}</if>
+            <if test="status != null and status != ''"> and status = #{status}</if>
+        </where>
+        order by sort_order
+    </select>
+
+    <insert id="insertAiModelPreset" parameterType="com.zhihuitong.agent.domain.AiModelPreset" useGeneratedKeys="true" keyProperty="id">
+        insert into ai_model_preset
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="name != null">name,</if>
+            <if test="provider != null">provider,</if>
+            <if test="protocol != null">protocol,</if>
+            <if test="openaiModel != null">openai_model,</if>
+            <if test="openaiBaseUrl != null">openai_base_url,</if>
+            <if test="anthropicModel != null">anthropic_model,</if>
+            <if test="anthropicBaseUrl != null">anthropic_base_url,</if>
+            <if test="ollamaModel != null">ollama_model,</if>
+            <if test="ollamaBaseUrl != null">ollama_base_url,</if>
+            <if test="apiKey != null">api_key,</if>
+            <if test="icon != null">icon,</if>
+            <if test="sortOrder != null">sort_order,</if>
+            <if test="status != null">status,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createBy != null">create_by,</if>
+            create_time,
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="name != null">#{name},</if>
+            <if test="provider != null">#{provider},</if>
+            <if test="protocol != null">#{protocol},</if>
+            <if test="openaiModel != null">#{openaiModel},</if>
+            <if test="openaiBaseUrl != null">#{openaiBaseUrl},</if>
+            <if test="anthropicModel != null">#{anthropicModel},</if>
+            <if test="anthropicBaseUrl != null">#{anthropicBaseUrl},</if>
+            <if test="ollamaModel != null">#{ollamaModel},</if>
+            <if test="ollamaBaseUrl != null">#{ollamaBaseUrl},</if>
+            <if test="apiKey != null">#{apiKey},</if>
+            <if test="icon != null">#{icon},</if>
+            <if test="sortOrder != null">#{sortOrder},</if>
+            <if test="status != null">#{status},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createBy != null">#{createBy},</if>
+            sysdate(),
+        </trim>
+    </insert>
+
+    <update id="updateAiModelPreset" parameterType="com.zhihuitong.agent.domain.AiModelPreset">
+        update ai_model_preset
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="provider != null">provider = #{provider},</if>
+            <if test="protocol != null">protocol = #{protocol},</if>
+            <if test="openaiModel != null">openai_model = #{openaiModel},</if>
+            <if test="openaiBaseUrl != null">openai_base_url = #{openaiBaseUrl},</if>
+            <if test="anthropicModel != null">anthropic_model = #{anthropicModel},</if>
+            <if test="anthropicBaseUrl != null">anthropic_base_url = #{anthropicBaseUrl},</if>
+            <if test="ollamaModel != null">ollama_model = #{ollamaModel},</if>
+            <if test="ollamaBaseUrl != null">ollama_base_url = #{ollamaBaseUrl},</if>
+            <if test="apiKey != null">api_key = #{apiKey},</if>
+            <if test="icon != null">icon = #{icon},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_time = sysdate(),
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteAiModelPresetById" parameterType="Long">
+        delete from ai_model_preset where id = #{id}
+    </delete>
+
+    <delete id="deleteAiModelPresetByIds" parameterType="Long">
+        delete from ai_model_preset where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

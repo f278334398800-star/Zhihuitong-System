@@ -59,6 +59,38 @@
             <artifactId>zhihuitong-platform</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.zhihuitong</groupId>
+            <artifactId>zhihuitong-oss</artifactId>
+        </dependency>
+
+        <!-- 智慧通业务模块-->
+        <dependency>
+            <groupId>com.zhihuitong</groupId>
+            <artifactId>zhihuitong-task</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+        <!-- AI 代理模块-->
+        <dependency>
+            <groupId>com.zhihuitong</groupId>
+            <artifactId>zhihuitong-agent</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.zhihuitong</groupId>
+            <artifactId>zhihuitong-knowledge</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.zhihuitong</groupId>
+            <artifactId>zhihuitong-student</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

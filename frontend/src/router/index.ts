@@ -48,11 +48,6 @@ export const constantRoutes = [
     hidden: true
   },
   {
-    path: "/:pathMatch(.*)*",
-    component: () => import('@/views/error/404.vue'),
-    hidden: true
-  },
-  {
     path: '/401',
     component: () => import('@/views/error/401.vue'),
     hidden: true
@@ -89,6 +84,36 @@ export const constantRoutes = [
         meta: { title: '个人中心', icon: 'user' }
       }
     ]
+  },
+  {
+    path: '/agent',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: 'chat',
+        component: () => import('@/views/agent/chat/index.vue'),
+        name: 'AgentChat',
+        meta: { title: 'AI 助手', icon: 'chat' }
+      },
+      {
+        path: 'manage',
+        component: () => import('@/views/agent/manage/index.vue'),
+        name: 'AgentManage',
+        meta: { title: 'Agent 管理', icon: 'monitor' }
+      },
+      {
+        path: 'preset',
+        component: () => import('@/views/agent/preset/index.vue'),
+        name: 'AgentPreset',
+        meta: { title: '模型配置', icon: 'model' }
+      }
+    ]
+  },
+  {
+    path: "/:pathMatch(.*)*",
+    component: () => import('@/views/error/404.vue'),
+    hidden: true
   }
 ]
 
@@ -161,6 +186,18 @@ export const dynamicRoutes = [
         component: () => import('@/views/tool/gen/editTable.vue'),
         name: 'GenEdit',
         meta: { title: '修改生成配置', activeMenu: '/tool/gen' }
+      }
+    ]
+  },
+  {
+    path: '/student',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/student/index.vue'),
+        name: 'Student',
+        meta: { title: '学生信息', icon: 'user' }
       }
     ]
   }

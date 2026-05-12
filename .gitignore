@@ -1,0 +1,138 @@
+################
+# OS
+################
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+################
+# IDE
+################
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# VS Code
+.vscode/
+
+# Eclipse / STS
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+
+# NetBeans
+nbproject/private/
+nbbuild/
+nbdist/
+.nb-gradle/
+
+# JRebel
+rebel.xml
+
+################
+# Claude Code
+################
+.claude/
+
+################
+# Java / Maven
+################
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+hs_err_pid*
+
+# Maven wrapper
+!.mvn/wrapper/maven-wrapper.jar
+
+################
+# Node / Frontend
+################
+node_modules/
+dist/
+
+# Lock files (use yarn)
+package-lock.json
+pnpm-lock.yaml
+
+# Frontend build output
+frontend/dist/
+zhihuitong/zhihuitong-ui/dist/
+
+# Vite cache
+frontend/node_modules/.vite/
+
+# Test coverage
+coverage/
+tests/**/coverage/
+
+################
+# Python
+################
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Python agent runtime data & config
+agent/.env
+agent/.venv/
+agent/data/
+agent/.mypy_cache/
+agent/.pytest_cache/
+agent/.ruff_cache/
+agent/__pycache__/
+agent/**/__pycache__/
+
+################
+# Environment / Secrets
+################
+.env
+.env.local
+.env.*.local
+
+# Spring Boot dev/prod 环境配置（包含数据库密码、密钥等敏感信息）
+application-dev.yml
+application-prod.yml
+
+################
+# Uploads & Runtime
+################
+# RuoYi upload path (configured in application.yml)
+ruoyi/
+D:/ruoyi/
+
+################
+# Logs
+################
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+################
+# Misc
+################
+*.swp
+*.swo
+*~
+*.xml.versionsBackup
+
+# Generator output (if code gen runs locally)
+zhihuitong/zhihuitong-generator/src/main/java/generated/

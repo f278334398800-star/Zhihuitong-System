@@ -27,3 +27,21 @@ export * from "./monitor/online";
 
 // 代码生成模块
 export * from "./tool/gen";
+
+// AI 聊天模块
+export * from "./agent";
+
+// 知识模块
+export * from "./knowledge/knowledge";
+export * from "./knowledge/type";
+
+export * from "./template/template";
+
+// 学生管理模块
+export * from "./system/student";
+
+// 成绩管理模块
+export * from "./system/score";
+
+// 任务待办模块
+export * from "./task/task";
